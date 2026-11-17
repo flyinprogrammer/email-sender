@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Send a test email</title>
+  <style>
+    :root { color-scheme: light dark; font: 1rem/1.5 system-ui, sans-serif; }
+    main { max-width: 28rem; margin: clamp(2rem, 10vh, 6rem) auto; padding: 0 1rem; }
+    h1 { line-height: 1.2; }
+    label { display: block; font-weight: 600; }
+    input, button { font: inherit; border-radius: .35rem; padding: .5rem .75rem; }
+    input { box-sizing: border-box; width: 100%; margin: .25rem 0 .75rem; }
+    button { cursor: pointer; }
+    button:disabled { cursor: wait; }
+    #status { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Send a test email</h1>
+    <p>Send a welcome email from <strong>welcome@scherger.cloud</strong>.</p>
+    <form id="send-form" action="/send" method="post">
+      <label for="recipient">Recipient email</label>
+      <input id="recipient" name="to" type="email" autocomplete="email" required>
+      <button type="submit">Send test email</button>
+    </form>
+    <p id="status" role="status"></p>
+  </main>
+  <script>
+    const form = document.querySelector('#send-form');
+    const recipient = document.querySelector('#recipient');
+    const button = form.querySelector('button');
+    const statusMessage = document.querySelector('#status');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (button.disabled) return;
+
+      button.disabled = true;
+      statusMessage.textContent = 'Sending…';
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: recipient.value }),
+        });
+        const result = await response.json();
+
+        if (response.ok) {
+          statusMessage.textContent = `Cloudflare accepted the email for delivery to ${result.to}.`;
+        } else {
+          const code = result.smtp_code ? ` (SMTP ${result.smtp_code})` : '';
+          statusMessage.textContent = `${result.error}${code}`;
+        }
+      } catch {
+        statusMessage.textContent = 'Could not confirm the send. Check the service and recipient inbox before retrying.';
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
